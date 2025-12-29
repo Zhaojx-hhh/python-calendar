@@ -1,121 +1,88 @@
 # 农历计算模块（许梓轩负责）
-// 农历月份名称
-const char* lunar_month[] = {"正月", "二月", "三月", "四月", "五月", "六月",
-                             "七月", "八月", "九月", "十月", "冬月", "腊月"};
-// 农历日期名称
-const char* lunar_day[] = {"初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
-                           "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
-                           "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"};
-// 二十四节气
-const char* solar_terms[] = {"立春", "雨水", "惊蛰", "春分", "清明", "谷雨",
-                             "立夏", "小满", "芒种", "夏至", "小暑", "大暑",
-                             "立秋", "处暑", "白露", "秋分", "寒露", "霜降",
-                             "立冬", "小雪", "大雪", "冬至", "小寒", "大寒"};
+# 导入lunarcalendar库的核心类和函数（适配0.0.9版本）
+from lunarcalendar import Converter, Solar, Lunar, DateNotExist
+from lunarcalendar import SOLAR_TERMS, MONTHS, LUNAR_MONTHS
 
-// 1900-2100年农历核心数据（闰月+大小月）
-static int lunar_data[] = {
-    0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
-    0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
-    0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
-    0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
-    0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
-    0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,
-    0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
-    0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b5a0,0x195a6,
-    0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
-    0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,
-    0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
-    0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
-    0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
-    0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
-    0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0
-};
 
-// 判断闰年
-int is_leap(int year) {
-    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-}
+def get_lunar_date(year, month, day):
+    """
+    公历转农历核心函数
+    :param year: 公历年（如2025）
+    :param month: 公历月（1-12）
+    :param day: 公历日（1-31）
+    :return: 农历日期/节气字符串（如"腊月初五"、"冬至"）
+    """
+    try:
+        # 构建公历日期对象
+        solar_date = Solar(year, month, day)
 
-// 计算节气（精准判断）
-int get_solar_term(int year, int month, int day) {
-    double num, term;
-    int index = (month - 1) * 2;
-    if (index < 2 || index > 22) return -1;
-    num = year - 1900;
-    term = 24.2422 + 0.2422 * num - (int)(num / 4);
-    if (index == 2) term += 1.9;
-    else if (index == 4) term += 1.85;
-    else if (index == 6) term += 1.85;
-    else if (index == 8) term += 1.93;
-    else if (index == 10) term += 1.95;
-    else if (index == 12) term += 1.94;
-    else if (index == 14) term += 1.88;
-    else if (index == 16) term += 1.86;
-    else if (index == 18) term += 1.92;
-    else if (index == 20) term += 2.0;
-    else if (index == 22) term += 2.08;
-    if (day == (int)term) return index;
-    if (day == (int)term + 1 && (int)term != term) return index;
-    return -1;
-}
+        # 第一步：判断当天是否为节气，若是直接返回节气名称
+        for term_index, term_name in enumerate(SOLAR_TERMS):
+            # 获取该节气在当年的公历日期
+            term_solar = Converter.Term2Solar(year, term_index)
+            if solar_date == term_solar:
+                return term_name
 
-// 公历转农历核心函数
-char* get_lunar_date(int year, int month, int day) {
-    static char lunar_str[64];
-    int i, leap = 0, temp, lunar_year, lunar_month, lunar_day;
-    int days_sum = 0, days_month = 0;
-    lunar_year = year;
+        # 第二步：非节气则转换为农历日期
+        lunar_date = Converter.Solar2Lunar(solar_date)
 
-    // 计算1900年到当前年的总天数
-    for (i = 1900; i < year; i++) days_sum += is_leap(i) ? 366 : 365;
-    // 计算当年到当前月的总天数
-    for (i = 1; i < month; i++) {
-        if (i == 2) days_sum += is_leap(year) ? 29 : 28;
-        else days_sum += (i == 4 || i == 6 || i == 9 || i == 11) ? 30 : 31;
-    }
-    days_sum += day;
+        # 处理闰月
+        if lunar_date.isleap:
+            lunar_month_name = f"闰{LUNAR_MONTHS[lunar_date.month - 1]}"
+        else:
+            lunar_month_name = LUNAR_MONTHS[lunar_date.month - 1]
 
-    // 匹配农历年份
-    for (i = 1900; i < 2101; i++) {
-        temp = is_leap(i) ? 384 : 354;
-        if (days_sum > temp) {
-            days_sum -= temp;
-            continue;
-        }
-        lunar_year = i;
-        break;
-    }
+        # 农历日期名称映射（初一到三十）
+        lunar_day_names = [
+            "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
+            "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
+            "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
+        ]
+        lunar_day_name = lunar_day_names[lunar_date.day - 1]
 
-    // 解析农历月份和闰月
-    temp = lunar_data[lunar_year - 1900];
-    leap = (temp & 0xf0000) >> 16;
-    temp &= 0xffff;
+        # 拼接农历日期字符串
+        return f"{lunar_month_name}{lunar_day_name}"
 
-    // 确定农历月和日
-    for (i = 1; i <= 12; i++) {
-        days_month = (temp & 0x8000) ? 30 : 29;
-        temp <<= 1;
-        if (days_sum > days_month) {
-            days_sum -= days_month;
-            continue;
-        }
-        lunar_month = i;
-        break;
-    }
-    lunar_day = days_sum;
+    except DateNotExist:
+        # 处理无效日期（如2月30日）
+        return "日期无效"
 
-    // 处理闰月
-    if (leap != 0 && lunar_month > leap) lunar_month--;
-    int is_leap_month = (leap != 0 && lunar_month == leap) ? 1 : 0;
 
-    // 拼接农历/节气字符串
-    int term_idx = get_solar_term(year, month, day);
-    if (term_idx != -1) {
-        if (is_leap_month) sprintf(lunar_str, "闰%s %s", lunar_month[lunar_month - 1], solar_terms[term_idx]);
-        else sprintf(lunar_str, "%s %s", lunar_month[lunar_month - 1], solar_terms[term_idx]);
-    } else {
-        if (is_leap_month) sprintf(lunar_str, "闰%s %s", lunar_month[lunar_month - 1], lunar_day[lunar_day - 1]);
-        else sprintf(lunar_str, "%s %s", lunar_month[lunar_month - 1], lunar_day[lunar_day - 1]);
-    }
-    return lunar_str;
-}
+def get_month_lunar_dates(year, month):
+    """
+    批量获取指定公历月份的所有农历信息（配合显示模块）
+    :param year: 公历年
+    :param month: 公历月
+    :return: 字典，key为公历日（1-31），value为农历/节气字符串
+    """
+    lunar_month_dict = {}
+    # 先判断当月天数
+    month_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    if month == 2:
+        # 闰年2月29天
+        if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
+            days = 29
+        else:
+            days = 28
+    else:
+        days = month_days[month - 1]
+
+    # 遍历当月每一天，获取农历信息
+    for day in range(1, days + 1):
+        lunar_month_dict[day] = get_lunar_date(year, month, day)
+
+    return lunar_month_dict
+
+
+# 测试代码（验证功能是否正常）
+if __name__ == "__main__":
+    # 测试单日期转换
+    print("2024年12月21日：", get_lunar_date(2024, 12, 21))  # 应输出“冬至”
+    print("2025年1月29日：", get_lunar_date(2025, 1, 29))  # 应输出农历日期（如“正月初二”）
+    print("2025年2月30日：", get_lunar_date(2025, 2, 30))  # 应输出“日期无效”
+
+    # 测试批量获取整月农历信息
+    print("\n2025年1月农历信息：")
+    jan_2025_lunar = get_month_lunar_dates(2025, 1)
+    for day, lunar_info in jan_2025_lunar.items():
+        print(f"1月{day}日：{lunar_info}")

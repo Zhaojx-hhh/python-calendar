@@ -1,41 +1,70 @@
-# 键盘控制模块（叶玮韬负责） 
 """
-万年历键盘操作模块 - 专用于小组作业
-作者：叶玮韬
-功能：
-1. 处理键盘输入：上下箭头键改变年份，左右箭头键改变月份
-2. 切换月视图与年视图
-3. 提供回调接口，通知主程序状态变化。
+键盘控制模块 - 叶玮韬负责
+使用项目lib目录下的pynput库，无需安装
 """
+
 import sys
+import os
 import time
-from typing import Callable
+from typing import Callable, Optional
 
-try:
-    from pynput import keyboard
+# ============ 核心：设置正确的导入路径 ============
+# 获取当前文件（keyboard.py）所在的绝对路径
+# __file__ 是 keyboard.py 的路径
+current_file = os.path.abspath(__file__)  # 例如：/项目根目录/src/keyboard.py
 
-    PYNPUT_AVAILABLE = True
-except ImportError:
-    PYNPUT_AVAILABLE = False
-    print("请安装: pip install pynput")
+# 获取当前文件所在目录（src目录）
+current_dir = os.path.dirname(current_file)  # 例如：/项目根目录/src
+
+# 获取项目根目录（src的上一级目录）
+project_root = os.path.dirname(current_dir)  # 例如：/项目根目录
+
+# 构建vendor/pynput的完整路径
+pynput_path = os.path.join(project_root, 'vendor', 'pynput')  # 例如：/项目根目录/vendor/pynput
+
+print(f"调试信息：")
+print(f"  当前文件：{current_file}")
+print(f"  当前目录：{current_dir}")
+print(f"  项目根目录：{project_root}")
+print(f"  pynput路径：{pynput_path}")
+
+# 检查pynput文件夹是否存在
+if not os.path.exists(pynput_path):
+    print(f"❌ 错误：找不到pynput文件夹")
+    print(f"   期望位置：{pynput_path}")
+    print("   请将下载的pynput文件夹放入项目根目录的vendor文件夹中")
+    print("   项目结构应该是：")
+    print("   项目根目录/")
+    print("     ├── src/")
+    print("     │   └── keyboard.py (这个文件)")
+    print("     └── vendor/")
+    print("         └── pynput/  (pynput源码)")
     sys.exit(1)
 
+# 将lib/pynput路径添加到Python搜索路径的最前面
+sys.path.insert(0, pynput_path)
+print(f"✅ 已添加pynput路径到Python搜索路径")
 
-class SimpleKeyboardController:
-    """键盘控制器"""
+# 现在导入pynput
+try:
+    from pynput import keyboard
+    print("✅ pynput库导入成功")
+except ImportError as e:
+    print(f"❌ 导入pynput失败：{e}")
+    print("   请检查pynput文件夹是否完整")
+    print("   应该有：pynput/__init__.py 和 pynput/keyboard/__init__.py")
+    sys.exit(1)
+# =================================================
 
-    def __init__(self, callback: Callable):
+class KeyboardController:
+    """键盘控制器类"""
+
+    def __init__(self, callback: Optional[Callable] = None):
         """
-        初始化
+        初始化键盘控制器
 
         Args:
-            callback: 回调函数，接收一个字典参数：
-                {
-                    'year': int,    # 年份
-                    'month': int,   # 月份
-                    'view': str,    # 'month'或'year'
-                    'action': str   # 操作类型
-                }
+            callback: 回调函数（可选），当状态变化时调用
         """
         self.callback = callback
 
@@ -44,13 +73,16 @@ class SimpleKeyboardController:
         today = datetime.date.today()
         self.year = today.year
         self.month = today.month
-        self.view = 'month'  # 默认月视图
+        self.view = 'month'  # 默认月视图（'month'或'year'）
 
+        # 控制标志
         self.is_running = False
         self.listener = None
 
+        print(f"键盘控制器初始化完成：{self.year}年{self.month}月 [{self.view}]")
+
     def _on_key_press(self, key):
-        """处理按键"""
+        """处理按键事件"""
         try:
             # 获取按键名称
             if hasattr(key, 'char') and key.char:
@@ -60,113 +92,163 @@ class SimpleKeyboardController:
             else:
                 key_name = str(key).replace("'", "").lower()
 
-            # 处理方向键
+            action = None
+
+            # ===== 处理方向键 =====
             if key_name == 'up':
                 self.year += 1
                 action = 'year_up'
+                print(f"↑ 年份+1 → {self.year}年")
+
             elif key_name == 'down':
                 self.year -= 1
                 if self.year < 1:
                     self.year = 1
                 action = 'year_down'
+                print(f"↓ 年份-1 → {self.year}年")
+
             elif key_name == 'left':
                 self.month -= 1
                 if self.month < 1:
                     self.month = 12
                     self.year -= 1
                 action = 'month_left'
+                print(f"← 月份-1 → {self.year}年{self.month}月")
+
             elif key_name == 'right':
                 self.month += 1
                 if self.month > 12:
                     self.month = 1
                     self.year += 1
                 action = 'month_right'
+                print(f"→ 月份+1 → {self.year}年{self.month}月")
 
-            # 处理视图切换
+            # ===== 处理视图切换 =====
             elif key_name == 'v':
-                # 切换视图
-                self.view = 'year' if self.view == 'month' else 'month'
+                # 切换视图：月 ↔ 年
+                if self.view == 'month':
+                    self.view = 'year'
+                    view_name = "年视图"
+                else:
+                    self.view = 'month'
+                    view_name = "月视图"
                 action = 'toggle_view'
+                print(f"V 切换视图 → {view_name}")
 
-            # 其他按键
+            # ===== 处理其他功能键 =====
             elif key_name == ' ' or key_name == 'space':
                 # 回到今天
                 import datetime
                 today = datetime.date.today()
                 self.year, self.month = today.year, today.month
                 action = 'go_today'
+                print(f"空格 回到今天 → {self.year}年{self.month}月")
+
             elif key_name == 'q':
+                # 退出程序（菜单中可能不需要）
+                print("Q 退出键盘控制")
                 self.stop()
                 return
-            else:
-                return  # 忽略其他按键
 
-            # 调用回调函数
-            self.callback({
-                'year': self.year,
-                'month': self.month,
-                'view': self.view,
-                'action': action
-            })
+            elif key_name == 'enter':
+                # 回车键确认
+                action = 'confirm'
+                print("Enter 确认选择")
+
+            # ===== 通知状态变化 =====
+            if action and self.callback:
+                self.callback({
+                    'year': self.year,
+                    'month': self.month,
+                    'view': self.view,
+                    'action': action
+                })
 
         except Exception as e:
-            print(f"键盘错误: {e}")
+            print(f"❌ 按键处理错误: {e}")
 
     def start(self):
-        """启动键盘监听"""
-        self.is_running = True
-        self.listener = keyboard.Listener(on_press=self._on_key_press)
-        self.listener.start()
-        print("键盘控制器已启动")
+        """启动键盘监听（后台运行）"""
+        if self.is_running:
+            print("键盘控制器已经在运行")
+            return
+
+        try:
+            self.listener = keyboard.Listener(on_press=self._on_key_press)
+            self.listener.start()
+            self.is_running = True
+            print("✅ 键盘监听已启动")
+            print("   使用方向键控制年份和月份，V切换视图")
+
+        except Exception as e:
+            print(f"❌ 启动键盘监听失败: {e}")
+            self.is_running = False
 
     def stop(self):
         """停止键盘监听"""
+        if not self.is_running:
+            return
+
         if self.listener:
             self.listener.stop()
+
         self.is_running = False
-        print("键盘控制器已停止")
+        print("键盘监听已停止")
 
+    def demo(self):
+        """演示键盘控制功能（组长的main.py会调用这个）"""
+        print("\n" + "="*50)
+        print("键盘控制演示")
+        print("="*50)
+        print("操作说明:")
+        print("  ↑ : 增加年份")
+        print("  ↓ : 减少年份")
+        print("  ← : 减少月份")
+        print("  → : 增加月份")
+        print("  V : 切换视图（月视图 ↔ 年视图）")
+        print("  空格 : 回到今天")
+        print("  Enter : 确认选择")
+        print("  Q : 退出演示")
+        print("="*50)
+        print(f"当前: {self.year}年{self.month}月")
+        print("请按键盘进行控制...")
 
-# ==================== 使用示例 ====================
+        # 定义一个简单的回调函数用于演示
+        def demo_callback(state):
+            print(f"  状态: {state['year']}年{state['month']}月 | 视图: {state['view']} | 操作: {state['action']}")
 
-def example_usage():
-    """展示如何在主程序中使用"""
+        # 保存原来的回调函数，设置为演示回调
+        original_callback = self.callback
+        self.callback = demo_callback
 
-    # 1. 定义回调函数
-    def handle_keyboard_event(state):
-        """处理键盘事件"""
-        print(f"\n收到键盘事件:")
-        print(f"  操作: {state['action']}")
-        print(f"  年份: {state['year']}")
-        print(f"  月份: {state['month']}")
-        print(f"  视图: {state['view']}")
+        # 启动键盘监听
+        self.start()
 
-        # 这里应该调用显示函数
-        # display_calendar(state['year'], state['month'], state['view'])
+        print("\n（按 Q 退出演示，或按 Ctrl+C 中断）")
+        try:
+            while self.is_running:
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("\n演示被中断")
+        finally:
+            self.stop()
+            # 恢复原来的回调函数
+            self.callback = original_callback
 
-    # 2. 创建键盘控制器
-    keyboard_ctrl = SimpleKeyboardController(handle_keyboard_event)
+        print("键盘控制演示结束")
 
-    # 3. 启动键盘监听
-    keyboard_ctrl.start()
+    def get_current_state(self):
+        """获取当前状态（其他模块可以调用）"""
+        return {
+            'year': self.year,
+            'month': self.month, 'view': self.view,
+            'is_running': self.is_running}
+#======测试代码======	"
+if __name__== "__main__": (
+    print("测试键盘控制器模块..."))
 
-    print("键盘操作说明:")
-    print("  ↑/↓ : 改变年份")
-    print("  ←/→ : 改变月份")
-    print("  v   : 切换视图")
-    print("  空格 : 回到今天")
-    print("  q   : 退出")
-    print("-" * 30)
+def test_callback(state):
+    print(f"[测试回调]{state}")
 
-    # 4. 保持程序运行
-    try:
-        while keyboard_ctrl.is_running:
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        print("\n程序被中断")
-    finally:
-        keyboard_ctrl.stop()
-
-
-if __name__ == "__main__":
-    example_usage()
+    controller = KeyboardController(test_callback)
+    controller.demo()

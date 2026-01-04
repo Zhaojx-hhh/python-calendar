@@ -19,8 +19,15 @@ print("请各成员按分工开发对应模块。")
 import sys
 import os
 
-# 添加 src 目录到 Python 路径
+# 添加当前目录到 Python 路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# 先定义所有变量，避免未定义错误
+SolarCalendar = None
+get_lunar_date = None
+display_month_view = None
+display_year_view = None
+KeyboardController = None
 
 # 导入项目模块
 try:
@@ -29,7 +36,6 @@ try:
     from display_month import display_month_view
     from display_year import display_year_view
     from keyboard import KeyboardController
-
     print("✅ 所有模块导入成功！")
 except ImportError as e:
     print(f"❌ 模块导入失败: {e}")
@@ -41,6 +47,8 @@ except ImportError as e:
     print("  - keyboard.py (键盘控制)")
     sys.exit(1)
 
+def display_team_info():
+    """显示开发团队信息"""
 
 def display_team_info():
     """显示开发团队信息"""

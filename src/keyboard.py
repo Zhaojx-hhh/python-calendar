@@ -135,7 +135,7 @@ class KeyboardController:
                 action = 'toggle_view'
                 print(f"V 切换视图 → {view_name}")
 
-            # ===== 处理其他功能键 =====
+            # ===== 其他功能键 =====
             elif key_name == ' ' or key_name == 'space':
                 # 回到今天
                 import datetime
@@ -144,11 +144,20 @@ class KeyboardController:
                 action = 'go_today'
                 print(f"空格 回到今天 → {self.year}年{self.month}月")
 
-            elif key_name == 'q':
-                # 退出程序（菜单中可能不需要）
-                print("Q 退出键盘控制")
+            elif key_name == 'esc':
+                # ESC键返回菜单
+                action = 'esc_exit'
+                print("ESC 返回菜单")
                 self.stop()
-                return
+                return False  # 返回False停止监听器
+
+
+            elif key_name == 'q':
+                # 退出程序
+                action = 'quit'
+                print("Q 退出程序")
+                self.stop()
+                return False  # 返回False停止监听器
 
             elif key_name == 'enter':
                 # 回车键确认
@@ -208,6 +217,7 @@ class KeyboardController:
         print("  V : 切换视图（月视图 ↔ 年视图）")
         print("  空格 : 回到今天")
         print("  Enter : 确认选择")
+        print("  ESC : 返回菜单")  # 新增
         print("  Q : 退出演示")
         print("="*50)
         print(f"当前: {self.year}年{self.month}月")
@@ -244,11 +254,11 @@ class KeyboardController:
             'month': self.month, 'view': self.view,
             'is_running': self.is_running}
 #======测试代码======	"
-if __name__== "__main__": (
-    print("测试键盘控制器模块..."))
+if __name__ == "__main__":
+    print("测试键盘控制器模块...")
 
-def test_callback(state):
-    print(f"[测试回调]{state}")
+    def test_callback(state):
+        print(f"[测试回调]{state}")
 
     controller = KeyboardController(test_callback)
     controller.demo()

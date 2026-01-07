@@ -10,6 +10,20 @@ import os
 import time
 from datetime import datetime
 
+# 获取正确的pynput路径（复制keyboard.py的逻辑）
+current_file = os.path.abspath(__file__)
+current_dir = os.path.dirname(current_file)
+project_root = os.path.dirname(current_dir)
+pynput_path = os.path.join(project_root, 'vendor', 'pynput')
+
+if os.path.exists(pynput_path) and pynput_path not in sys.path:
+    sys.path.insert(0, pynput_path)
+
+# 现在可以导入pynput了（静默导入）
+try:
+    from pynput import keyboard
+except:
+    pass  # 不打印错误，让keyboard.py自己处理
 
 # ========== 🔧 路径初始化（最关键部分）==========
 def setup_project_paths():
@@ -25,14 +39,6 @@ def setup_project_paths():
     print(f"  项目根目录: {PROJECT_ROOT}")
     print(f"  当前目录: {CURRENT_DIR}")
 
-    # 添加 vendor 到搜索路径（优先）
-    if os.path.exists(VENDOR_DIR):
-        if VENDOR_DIR not in sys.path:
-            sys.path.insert(0, VENDOR_DIR)
-            print(f"✅ 已添加 vendor 路径: {VENDOR_DIR}")
-    else:
-        print(f"⚠️  vendor 目录不存在: {VENDOR_DIR}")
-
     # 添加项目根目录和当前目录
     for path in [PROJECT_ROOT, CURRENT_DIR]:
         if path not in sys.path:
@@ -46,58 +52,39 @@ current_dir, project_root = setup_project_paths()
 
 
 # ========== 📦 模块导入调试工具 ==========
-def debug_import(module_name, attr=None):
-    """调试导入并返回模块或属性"""
-    try:
-        module = __import__(module_name, fromlist=[attr] if attr else None)
-        if attr:
-            return getattr(module, attr)
-        return module
-    except Exception as e:
-        print(f"❌ 导入失败: {module_name} -> {e}")
-        return None
-
-
-# ========== 🚀 加载第三方库 pynput ==========
-print("\n📦 正在加载核心依赖...")
-
-try:
-    import pynput
-    from pynput import keyboard  # 验证关键子模块可用
-    # 尝试获取版本号（安全方式）
-    try:
-        # 方法1：先看有没有 __version__
-        version = getattr(pynput, '__version__', None)
-        if version:
-            pynput_version = version
-        else:
-            # 方法2：使用 importlib.metadata 获取安装版本
-            from importlib.metadata import version as pkg_version
-            pynput_version = pkg_version("pynput")
-        print(f"✅ 成功导入 pynput，版本: {pynput_version}")
-    except Exception:
-        # 即使拿不到版本号也不影响运行
-        print("✅ 成功导入 pynput（版本信息不可用）")
-except ImportError as e:
-    print(f"❌ 导入 pynput 失败: {e}")
-    print("💡 请检查以下问题：")
-    print("   1. 是否运行过: pip install --target='./vendor' pynput")
-    print("   2. vendor 目录下是否有 pynput 文件夹？")
-    print("   3. src/ 下是否有名为 pynput.py 的冲突文件？")
-    sys.exit(1)
-
-
-
 # ========== 🧩 动态导入团队开发的模块 ==========
 print("-" * 50)
 print("🔄 正在加载团队开发模块...")
 
-# 初始化模块变量
-KeyboardController = debug_import('keyboard', 'KeyboardController')
-SolarCalendar = debug_import('solar', 'SolarCalendar')
-get_lunar_date = debug_import('lunar', 'get_lunar_date')
-display_month_view = debug_import('views', 'display_month_view')
-display_year_view = debug_import('views', 'display_year_view')
+# 直接导入所有模块
+try:
+    from my_keyboard import KeyboardController
+    print("✅ my_keyboard 模块导入成功")
+except Exception as e:
+    print(f"❌ my_keyboard 模块导入失败: {e}")
+    KeyboardController = None
+
+try:
+    from solar import SolarCalendar
+    print("✅ solar 模块导入成功")
+except Exception as e:
+    print(f"⚠️  solar 模块导入失败: {e}")
+    SolarCalendar = None
+
+try:
+    from lunar import get_lunar_date
+    print("✅ lunar 模块导入成功")
+except Exception as e:
+    print(f"⚠️  lunar 模块导入失败: {e}")
+    get_lunar_date = None
+
+try:
+    from views import display_month_view, display_year_view
+    print("✅ views 模块导入成功")
+except Exception as e:
+    print(f"⚠️  views 模块导入失败: {e}")
+    display_month_view = None
+    display_year_view = None
 
 print("-" * 50)
 
@@ -242,7 +229,7 @@ class CalendarApp:
     def setup_keyboard(self):
         """初始化键盘控制器"""
         if KeyboardController is None:
-            print("❌ 错误: keyboard.py 未加载，请检查文件和依赖！")
+            print("❌ 错误: my_keyboard.py 未加载，请检查文件和依赖！")
             return False
 
         try:
@@ -298,7 +285,7 @@ if __name__ == "__main__":
         print("\n" + "!" * 50)
         print("🚨 致命错误：键盘控制模块未加载！")
         print("请检查以下几点：")
-        print("  1. 文件是否存在？ → src/keyboard.py")
+        print("  1. 文件是否存在？ → src/my_keyboard.py")
         print("  2. 是否安装了 pynput？ → pip install --target='./vendor' pynput")
         print("  3. vendor/pynput/__init__.py 是否存在？")
         print("!" * 50)

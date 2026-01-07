@@ -1,6 +1,6 @@
 """
 键盘控制模块 - 叶玮韬负责
-使用项目lib目录下的pynput库，无需安装
+使用项目vendor目录下的pynput库，无需安装
 """
 
 import sys
@@ -9,50 +9,40 @@ import time
 from typing import Callable, Optional
 
 # ============ 核心：设置正确的导入路径 ============
-# 获取当前文件（keyboard.py）所在的绝对路径
-# __file__ 是 keyboard.py 的路径
-current_file = os.path.abspath(__file__)  # 例如：/项目根目录/src/keyboard.py
-
-# 获取当前文件所在目录（src目录）
+# 获取当前文件（my_keyboard.py）所在的绝对路径
+current_file = os.path.abspath(__file__)  # 例如：/项目根目录/src/my_keyboard.py
 current_dir = os.path.dirname(current_file)  # 例如：/项目根目录/src
-
-# 获取项目根目录（src的上一级目录）
 project_root = os.path.dirname(current_dir)  # 例如：/项目根目录
 
 # 构建vendor/pynput的完整路径
 pynput_path = os.path.join(project_root, 'vendor', 'pynput')  # 例如：/项目根目录/vendor/pynput
 
-print(f"调试信息：")
-print(f"  当前文件：{current_file}")
-print(f"  当前目录：{current_dir}")
-print(f"  项目根目录：{project_root}")
-print(f"  pynput路径：{pynput_path}")
+# 只在直接运行时打印调试信息
+if __name__ == "__main__":
+    print(f"调试信息：")
+    print(f"  当前文件：{current_file}")
+    print(f"  当前目录：{current_dir}")
+    print(f"  项目根目录：{project_root}")
+    print(f"  pynput路径：{pynput_path}")
 
 # 检查pynput文件夹是否存在
 if not os.path.exists(pynput_path):
     print(f"❌ 错误：找不到pynput文件夹")
-    print(f"   期望位置：{pynput_path}")
-    print("   请将下载的pynput文件夹放入项目根目录的vendor文件夹中")
-    print("   项目结构应该是：")
-    print("   项目根目录/")
-    print("     ├── src/")
-    print("     │   └── keyboard.py (这个文件)")
-    print("     └── vendor/")
-    print("         └── pynput/  (pynput源码)")
     sys.exit(1)
 
-# 将lib/pynput路径添加到Python搜索路径的最前面
-sys.path.insert(0, pynput_path)
-print(f"✅ 已添加pynput路径到Python搜索路径")
+# 将pynput路径添加到Python搜索路径的最前面
+if pynput_path not in sys.path:
+    sys.path.insert(0, pynput_path)
+    if __name__ == "__main__":
+        print(f"✅ 已添加pynput路径到Python搜索路径")
 
 # 现在导入pynput
 try:
     from pynput import keyboard
-    print("✅ pynput库导入成功")
+    if __name__ == "__main__":
+        print("✅ pynput库导入成功")
 except ImportError as e:
     print(f"❌ 导入pynput失败：{e}")
-    print("   请检查pynput文件夹是否完整")
-    print("   应该有：pynput/__init__.py 和 pynput/keyboard/__init__.py")
     sys.exit(1)
 # =================================================
 

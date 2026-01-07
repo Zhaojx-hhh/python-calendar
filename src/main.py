@@ -19,6 +19,7 @@ pynput_path = os.path.join(project_root, 'vendor', 'pynput')
 if os.path.exists(pynput_path) and pynput_path not in sys.path:
     sys.path.insert(0, pynput_path)
 
+
 # 现在可以导入pynput了（静默导入）
 try:
     from pynput import keyboard

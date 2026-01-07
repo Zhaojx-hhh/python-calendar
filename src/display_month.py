@@ -2,127 +2,66 @@ import calendar
 from datetime import datetime
 
 
-def print_month_calendar(year=None, month=None, start_day=calendar.SUNDAY):
+def print_aligned_calendar(year=None, month=None):
     """
-    打印指定年月的基础月视图日历
-
-    Parameters:
-        year: 年份，默认为当前年份
-        month: 月份，默认为当前月份
-        start_day: 周起始日，默认周日开始
+    打印对齐的月视图日历
     """
-    # 参数验证
     if year is None or month is None:
         now = datetime.now()
         year, month = now.year, now.month
 
-    # 验证月份范围
+    # 验证月份
     if month < 1 or month > 12:
-        print(f"错误：月份必须在1-12之间，当前输入：{month}")
+        print(f"错误：月份必须在1-12之间")
         return
 
     # 创建日历对象
-    cal = calendar.TextCalendar(start_day)
-
-    # 获取月视图文本
-    month_text = cal.formatmonth(year, month)
-
-    # 修复对齐问题
-    lines = month_text.strip().split('\n')
-
-    # 提取标题行
-    title_line = lines[0]
-
-    # 修复星期标题行
-    if len(lines) > 1:
-        # 保持原有的星期标题
-        week_header = lines[1]
-
-        # 获取日期行并修复对齐
-        date_lines = []
-        for i in range(2, len(lines)):
-            line = lines[i]
-            # 修复数字对齐问题
-            if line.strip():  # 跳过空行
-                # 将多个空格替换为固定宽度的空格
-                date_lines.append(' '.join([f"{cell:>2}" for cell in line.split()]))
-            else:
-                date_lines.append("")
-
-    # 重新构建月视图
-    print(f"\n{'=' * 30}")
-    print(f"      {calendar.month_name[month]} {year}")
-    print(f"{'=' * 30}")
-
-    # 打印修复后的内容
-    print(title_line)
-    if len(lines) > 1:
-        print(week_header)
-        print('-' * 30)
-        for line in date_lines:
-            print(line)
-
-    print(f"{'=' * 30}")
-
-
-def print_custom_month_calendar(year=None, month=None):
-    """
-    自定义月视图日历，解决对齐问题
-    """
-    # 参数验证
-    if year is None or month is None:
-        now = datetime.now()
-        year, month = now.year, now.month
-
-    # 验证月份范围
-    if month < 1 or month > 12:
-        print(f"错误：月份必须在1-12之间，当前输入：{month}")
-        return
-
-    # 创建日历对象（从周日开始）
     cal = calendar.Calendar(calendar.SUNDAY)
-
-    # 获取该月的日期矩阵
     month_days = cal.monthdayscalendar(year, month)
 
-    # 星期标题
-    weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+    # 设置单元格宽度
+    cell_width = 4  # 每个单元格4个字符宽度
 
-    # 打印日历
-    print(f"\n{'=' * 30}")
-    print(f"      {calendar.month_name[month]} {year}")
-    print(f"{'=' * 30}")
+    # 星期标题（英文缩写）
+    weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-    # 打印星期标题
-    print(" ".join(f"{day:>2}" for day in weekdays))
-    print("-" * 30)
+    # 打印月份标题
+    title = f"{calendar.month_name[month]} {year}"
+    print(f"\n{'=' * (len(weekdays) * cell_width)}")
+    print(title.center(len(weekdays) * cell_width))
+    print(f"{'=' * (len(weekdays) * cell_width)}")
 
-    # 打印日期
+    # 打印星期标题（居中对齐）
+    for wd in weekdays:
+        print(f"{wd:^{cell_width}}", end="")
+    print()
+    print("-" * (len(weekdays) * cell_width))
+
+    # 打印日期（每个日期居中对齐）
     for week in month_days:
-        week_str = []
         for day in week:
             if day == 0:
-                week_str.append("  ")
+                # 空日期
+                print(f"{'':^{cell_width}}", end="")
             else:
-                week_str.append(f"{day:2d}")
-        print(" ".join(week_str))
+                # 如果是今天，特殊标记
+                now = datetime.now()
+                if year == now.year and month == now.month and day == now.day:
+                    print(f"{f'[{day}]':^{cell_width}}", end="")
+                else:
+                    print(f"{day:^{cell_width}d}", end="")
+        print()  # 换行
 
-    print(f"{'=' * 30}")
+    print(f"{'=' * (len(weekdays) * cell_width)}")
 
 
-def print_pretty_month_calendar(year=None, month=None):
+def print_chinese_aligned_calendar(year=None, month=None):
     """
-    美观的月视图日历，带中文支持
+    打印对齐的中文月视图日历
     """
-    # 参数验证
     if year is None or month is None:
         now = datetime.now()
         year, month = now.year, now.month
-
-    # 验证月份范围
-    if month < 1 or month > 12:
-        print(f"错误：月份必须在1-12之间，当前输入：{month}")
-        return
 
     # 中文月份名称
     chinese_months = {
@@ -131,57 +70,51 @@ def print_pretty_month_calendar(year=None, month=None):
         9: "九月", 10: "十月", 11: "十一月", 12: "十二月"
     }
 
-    # 中文星期
+    # 中文星期（每个占2字符）
     chinese_weekdays = ["日", "一", "二", "三", "四", "五", "六"]
 
-    # 创建日历对象（从周日开始）
+    # 创建日历对象
     cal = calendar.Calendar(calendar.SUNDAY)
-
-    # 获取该月的日期矩阵
     month_days = cal.monthdayscalendar(year, month)
 
-    # 打印日历
-    print(f"\n{'=' * 40}")
-    print(f"          {year}年 {chinese_months[month]}")
-    print(f"{'=' * 40}")
+    # 单元格宽度（中文需要更大宽度）
+    cell_width = 6  # 每个单元格6个字符宽度
+
+    # 打印标题
+    title = f"{year}年 {chinese_months[month]}"
+    print(f"\n{'=' * (len(chinese_weekdays) * cell_width)}")
+    print(title.center(len(chinese_weekdays) * cell_width))
+    print(f"{'=' * (len(chinese_weekdays) * cell_width)}")
 
     # 打印星期标题
-    print("  " + "  ".join(f"{day:^3}" for day in chinese_weekdays))
-    print("-" * 40)
+    for wd in chinese_weekdays:
+        print(f"星期{wd}".center(cell_width), end="")
+    print()
+    print("-" * (len(chinese_weekdays) * cell_width))
 
     # 打印日期
     for week in month_days:
-        week_str = []
         for day in week:
             if day == 0:
-                week_str.append("    ")
+                print(f"{'':^{cell_width}}", end="")
             else:
-                # 如果是当前日期，用特殊标记
                 now = datetime.now()
                 if year == now.year and month == now.month and day == now.day:
-                    week_str.append(f"[{day:2d}]")
+                    print(f"{f'[{day}]':^{cell_width}}", end="")
                 else:
-                    week_str.append(f" {day:2d} ")
-        print("".join(week_str))
+                    print(f"{day:^{cell_width}d}", end="")
+        print()
 
-    print(f"{'=' * 40}")
+    print(f"{'=' * (len(chinese_weekdays) * cell_width)}")
 
 
-# 测试函数
+# 测试
 if __name__ == "__main__":
-    print("方法1: 使用calendar库的formatmonth方法（有问题）")
-    print_month_calendar(2024, 3)
+    print("英文对齐月视图:")
+    print_aligned_calendar(2024, 3)
 
-    print("\n方法2: 自定义月视图（修复对齐）")
-    print_custom_month_calendar(2024, 3)
-
-    print("\n方法3: 美观的中文月视图")
-    print_pretty_month_calendar(2024, 3)
-
-    print("\n方法4: 打印当前月份")
-    print_pretty_month_calendar()
-
-
+    print("\n\n中文对齐月视图:")
+    print_chinese_aligned_calendar(2024, 3)
 
 
 

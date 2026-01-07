@@ -73,7 +73,7 @@ except Exception as e:
     SolarCalendar = None
 
 try:
-    from lunar import get_lunar_date
+    from my_lunar import get_lunar_date
     print("✅ lunar 模块导入成功")
 except Exception as e:
     print(f"⚠️  lunar 模块导入失败: {e}")
